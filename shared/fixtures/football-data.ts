@@ -63,6 +63,32 @@ function isPlayableMatch(m: FootballDataMatch): boolean {
   return Boolean(m.id && m.utcDate && m.homeTeam?.name && m.awayTeam?.name);
 }
 
+function normalizeStatus(apiStatus: string): MatchStatus {
+  switch (apiStatus) {
+    case "TIMED":
+    case "SCHEDULED":
+      return "SCHEDULED";
+    case "IN_PLAY":
+    case "PAUSED":
+    case "LIVE":
+      return "LIVE";
+    case "FINISHED":
+      return "FINISHED";
+    case "POSTPONED":
+      return "POSTPONED";
+    case "CANCELLED":
+    case "SUSPENDED":
+      return "CANCELLED";
+    default:
+      return "SCHEDULED";
+  }
+}
+
+function normalizeGroup(group: string | null | undefined): string | undefined {
+  if (!group) return undefined;
+  return group.replace(/^GROUP_/, "");
+}
+
 function mapMatch(m: FootballDataMatch): Fixture {
   const stage = STAGE_MAP[m.stage] ?? "GROUP_STAGE";
   const home = m.score?.fullTime.home;
@@ -78,9 +104,9 @@ function mapMatch(m: FootballDataMatch): Fixture {
   return {
     id: m.id,
     utcDate: m.utcDate,
-    status: m.status as MatchStatus,
+    status: normalizeStatus(m.status),
     stage,
-    group: m.group ?? undefined,
+    group: normalizeGroup(m.group),
     homeTeam: mapTeam(m.homeTeam),
     awayTeam: mapTeam(m.awayTeam),
     venue: m.venue ?? undefined,
