@@ -163,11 +163,14 @@ export class App {
     const liveMinute = isLive ? formatLiveMinute(fixture) ?? "LIVE" : "";
 
     const confidence = hasPred ? prediction!.final.confidence : "";
+    const phase = prediction?.phase ?? "final";
     const lockStatus = !hasPred
       ? `<span class="badge badge--pending">Awaiting prediction</span>`
-      : locked
-        ? `<span class="badge badge--locked">Locked ${new Date(prediction!.lockedAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>`
-        : `<span class="badge badge--open">Locks at kick-off · ${timeUntilKickoff(fixture.utcDate)}</span>`;
+      : phase === "early"
+        ? `<span class="badge badge--draft">Early estimate · refines 2–4h before kick-off</span>`
+        : locked
+          ? `<span class="badge badge--locked">Locked ${new Date(prediction!.lockedAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>`
+          : `<span class="badge badge--open">Locks at kick-off · ${timeUntilKickoff(fixture.utcDate)}</span>`;
 
     const resultBadge =
       mode === "result" && grading
@@ -189,7 +192,7 @@ export class App {
     const rationale = hasPred && expanded
       ? `<div class="rationale">
           <p>${escapeHtml(prediction!.final.rationale)}</p>
-          ${prediction!.source === "baseline" ? '<span class="rationale__tag">Elo baseline</span>' : '<span class="rationale__tag">LLM-adjusted</span>'}
+          ${phase === "early" ? '<span class="rationale__tag">Early · Elo only</span>' : prediction!.source === "baseline" ? '<span class="rationale__tag">Elo baseline</span>' : '<span class="rationale__tag">LLM-adjusted</span>'}
           ${sources}
           ${fixture.venue ? `<span class="rationale__venue">${escapeHtml(fixture.venue)}</span>` : ""}
         </div>`
@@ -212,7 +215,7 @@ export class App {
             <span class="team__name">${escapeHtml(fixture.awayTeam.shortName)}</span>
           </div>
         </div>
-        ${hasPred ? this.renderProbBar(prediction!, fixture.homeTeam.tla, fixture.awayTeam.tla) : '<div class="no-pred">Prediction generates 2–4h before kick-off</div>'}
+        ${hasPred ? this.renderProbBar(prediction!, fixture.homeTeam.tla, fixture.awayTeam.tla) : '<div class="no-pred">Early estimate ~12h before kick-off · refined 2–4h before</div>'}
         <div class="match-card__footer">
           <div class="match-card__badges">
             ${lockStatus}

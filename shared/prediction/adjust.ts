@@ -123,6 +123,7 @@ export function applyAdjustment(
 
   return {
     ...baselinePred,
+    phase: "final",
     adjustment,
     final: {
       probabilities: probs,

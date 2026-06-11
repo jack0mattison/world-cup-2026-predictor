@@ -6,7 +6,7 @@ import { generateBaselinePrediction } from "./baseline.js";
 import { fetchLlmAdjustment } from "./llm.js";
 
 export async function generatePrediction(fixture: Fixture): Promise<LockedPrediction> {
-  const baselinePred = generateBaselinePrediction(fixture);
+  const baselinePred = generateBaselinePrediction(fixture, "final");
 
   if (!isLlmLayerEnabled()) {
     return baselinePred;

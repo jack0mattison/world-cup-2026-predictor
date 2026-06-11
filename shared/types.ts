@@ -69,8 +69,12 @@ export interface LlmAdjustment {
   note?: string;
 }
 
+export type PredictionPhase = "early" | "final";
+
 export interface LockedPrediction {
   matchId: number;
+  /** early = Elo baseline ~12h out; final = refined 2–4h before kick-off (graded for accuracy) */
+  phase: PredictionPhase;
   generatedAt: string;
   lockedAt: string;
   kickoff: string;

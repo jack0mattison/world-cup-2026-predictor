@@ -32,7 +32,7 @@ Set in Netlify dashboard (or `.env` for `netlify dev`):
 
 | Function | Schedule | Purpose |
 |---|---|---|
-| `predict-background` | Hourly | Lock predictions 2–4h before kick-off (Brave + OpenRouter) |
+| `predict-background` | Hourly | Early Elo estimate ~12h out; final prediction 2–4h before kick-off (Brave + OpenRouter) |
 | `predict` | Manual | Test the prediction pipeline locally |
 | `settle` | Every 2h | Fetch results, grade predictions, update stats |
 

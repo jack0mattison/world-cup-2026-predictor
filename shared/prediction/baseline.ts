@@ -4,6 +4,7 @@ import type {
   Confidence,
   Fixture,
   LockedPrediction,
+  PredictionPhase,
   PredictionProbabilities,
 } from "../types.js";
 
@@ -30,12 +31,20 @@ function buildRationale(fixture: Fixture, baseline: BaselinePrediction): string 
   return text;
 }
 
-export function generateBaselinePrediction(fixture: Fixture): LockedPrediction {
+export function generateBaselinePrediction(
+  fixture: Fixture,
+  phase: PredictionPhase = "final"
+): LockedPrediction {
   const baseline = computeBaseline(fixture);
   const now = new Date().toISOString();
+  const rationale =
+    phase === "early"
+      ? `${buildRationale(fixture, baseline)} Early estimate — refines 2–4h before kick-off when lineups and team news are clearer.`
+      : buildRationale(fixture, baseline);
 
   return {
     matchId: fixture.id,
+    phase,
     generatedAt: now,
     lockedAt: now,
     kickoff: fixture.utcDate,
@@ -44,7 +53,7 @@ export function generateBaselinePrediction(fixture: Fixture): LockedPrediction {
       probabilities: baseline.probabilities,
       scoreline: baseline.scoreline,
       confidence: deriveConfidence(baseline.probabilities),
-      rationale: buildRationale(fixture, baseline),
+      rationale,
     },
     source: "baseline",
   };

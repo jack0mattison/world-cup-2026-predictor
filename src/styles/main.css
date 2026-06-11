@@ -278,6 +278,7 @@ body {
 .badge--locked { color: var(--accent); background: rgba(61, 255, 138, 0.1); }
 .badge--open { color: var(--draw); background: rgba(247, 224, 109, 0.1); }
 .badge--pending { color: var(--text-muted); }
+.badge--draft { color: var(--accent); background: rgba(212, 175, 55, 0.12); }
 .badge--hit { color: var(--hit); background: rgba(61, 255, 138, 0.15); }
 .badge--miss { color: var(--miss); background: rgba(255, 107, 107, 0.15); }
 .badge--conf-high { color: var(--accent); }

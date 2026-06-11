@@ -47,6 +47,7 @@ export const handler: Handler = async () => {
     const allPredictions = await getAllPredictions();
     const gradings = [];
     for (const [id, prediction] of Object.entries(allPredictions)) {
+      if ((prediction.phase ?? "final") === "early") continue;
       const result = await getResult(Number(id));
       if (result) {
         gradings.push(gradeMatch(prediction, result));
