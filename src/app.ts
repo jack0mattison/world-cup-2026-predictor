@@ -127,10 +127,18 @@ export class App {
         ? `<div class="actual-score">Final: <strong>${fixture.score.home}–${fixture.score.away}</strong></div>`
         : "";
 
+    const sources =
+      hasPred && prediction!.adjustment?.sources?.length
+        ? `<ul class="rationale__sources">${prediction!.adjustment.sources
+            .map((u) => `<li><a href="${escapeHtml(u)}" target="_blank" rel="noopener">${escapeHtml(new URL(u).hostname)}</a></li>`)
+            .join("")}</ul>`
+        : "";
+
     const rationale = hasPred && expanded
       ? `<div class="rationale">
           <p>${escapeHtml(prediction!.final.rationale)}</p>
           ${prediction!.source === "baseline" ? '<span class="rationale__tag">Elo baseline</span>' : '<span class="rationale__tag">LLM-adjusted</span>'}
+          ${sources}
           ${fixture.venue ? `<span class="rationale__venue">${escapeHtml(fixture.venue)}</span>` : ""}
         </div>`
       : "";

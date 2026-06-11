@@ -32,9 +32,9 @@ Set in Netlify dashboard (or `.env` for `netlify dev`):
 
 | Function | Schedule | Purpose |
 |---|---|---|
-| `predict` | Hourly | Lock predictions 2–4h before kick-off |
+| `predict-background` | Hourly | Lock predictions 2–4h before kick-off (Brave + OpenRouter) |
+| `predict` | Manual | Test the prediction pipeline locally |
 | `settle` | Every 2h | Fetch results, grade predictions, update stats |
-| `predict-background` | Manual (M2) | Long-running LLM+search batches |
 
 ## Deploy
 
@@ -57,5 +57,5 @@ Static frontend → /.netlify/functions/api-data → Netlify Blobs
 ## Milestones
 
 - **M1 (current):** Fixtures, Elo baseline, Blobs, predict/settle, Upcoming + Results + Accuracy views
-- **M2:** LLM + Brave Search adjustment, PWA polish
+- **M2 (current):** LLM + Brave Search adjustment layer live; PWA polish remaining
 - **M3:** Knockout draw redistribution, bracket view
