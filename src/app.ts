@@ -311,9 +311,9 @@ export class App {
     this.root.innerHTML = `
       <header class="header">
         <div class="header__brand">
-          <span class="header__wc">WC</span>
+          <img class="header__icon" src="/favicon.svg" width="40" height="40" alt="" />
           <div>
-            <h1>26 Predictor</h1>
+            <h1>Mattison World Cup Predictor</h1>
             <p class="header__tagline">Locked before kick-off · Tracked for accuracy</p>
           </div>
         </div>
