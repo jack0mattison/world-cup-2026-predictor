@@ -25,10 +25,10 @@ const KNOCKOUT_STAGES = new Set<MatchStage>([
 ]);
 
 interface FootballDataTeam {
-  id: number;
-  name: string;
-  shortName?: string;
-  tla?: string;
+  id: number | null;
+  name: string | null;
+  shortName?: string | null;
+  tla?: string | null;
   crest?: string;
 }
 
@@ -48,14 +48,19 @@ interface FootballDataMatch {
   };
 }
 
-function mapTeam(t: FootballDataTeam): Team {
+function mapTeam(t: FootballDataTeam | null | undefined, fallback = "TBD"): Team {
+  const name = t?.name?.trim() || fallback;
   return {
-    id: t.id,
-    name: t.name,
-    shortName: t.shortName ?? t.name,
-    tla: t.tla ?? t.name.slice(0, 3).toUpperCase(),
-    crest: t.crest,
+    id: t?.id ?? 0,
+    name,
+    shortName: t?.shortName?.trim() || name,
+    tla: t?.tla?.trim() || name.slice(0, 3).toUpperCase(),
+    crest: t?.crest ?? undefined,
   };
+}
+
+function isPlayableMatch(m: FootballDataMatch): boolean {
+  return Boolean(m.id && m.utcDate && m.homeTeam?.name && m.awayTeam?.name);
 }
 
 function mapMatch(m: FootballDataMatch): Fixture {
@@ -115,10 +120,15 @@ export class FootballDataProvider implements FixturesProvider {
       try {
         const data = (await this.fetch(path)) as { matches?: FootballDataMatch[] };
         const matches = data.matches ?? [];
-        if (matches.length === 0) {
-          throw new Error(`football-data.org returned no matches for ${path}`);
+        const fixtures = matches
+          .filter(isPlayableMatch)
+          .map(mapMatch)
+          .sort((a, b) => a.utcDate.localeCompare(b.utcDate));
+
+        if (fixtures.length === 0) {
+          throw new Error(`football-data.org returned no playable matches for ${path}`);
         }
-        return matches.map(mapMatch).sort((a, b) => a.utcDate.localeCompare(b.utcDate));
+        return fixtures;
       } catch (err) {
         lastError = err instanceof Error ? err : new Error(String(err));
       }
