@@ -7,7 +7,7 @@ Probabilistic pre-match predictions for every FIFA World Cup 2026 fixture — lo
 - **Frontend:** Vite + TypeScript (vanilla, mobile-first)
 - **Backend:** Netlify Functions + Scheduled Functions
 - **Storage:** Netlify Blobs
-- **Data:** football-data.org (fixtures/results), World Football Elo ratings (baseline)
+- **Data:** football-data.org (fixtures/results), ESPN scoreboard (live scores fallback), World Football Elo ratings (baseline)
 
 ## Quick start
 

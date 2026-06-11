@@ -10,8 +10,9 @@ import {
   hasFootballDataApiKey,
   refreshFixtures,
 } from "./index.js";
+import { fetchEspnLiveUpdates } from "./espn.js";
 import { FootballDataProvider } from "./football-data.js";
-import { needsLiveFixtureRefresh } from "./live.js";
+import { hasLiveOrRecentMatches, needsLiveFixtureRefresh } from "./live.js";
 import { mergeFixtures } from "./merge.js";
 import { isSampleFixtures } from "./sample.js";
 
@@ -43,6 +44,15 @@ export async function ensureFixtures(force = false): Promise<Fixture[]> {
       fixtures = mergeFixtures(fixtures, liveUpdates);
     } catch (err) {
       console.warn("Live snapshot merge failed:", err);
+    }
+  }
+
+  if (hasLiveOrRecentMatches(fixtures) && (liveStale || force)) {
+    try {
+      const espnUpdates = await fetchEspnLiveUpdates(fixtures);
+      fixtures = mergeFixtures(fixtures, espnUpdates);
+    } catch (err) {
+      console.warn("ESPN live merge failed:", err);
     }
   }
 
