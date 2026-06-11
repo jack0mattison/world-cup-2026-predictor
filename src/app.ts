@@ -143,6 +143,12 @@ export class App {
     const hasPred = !!prediction;
 
     const isLive = isEffectivelyLive(fixture);
+    const kickoffPassed = new Date(fixture.utcDate).getTime() <= Date.now();
+    const showPendingPredCopy =
+      !hasPred &&
+      fixture.status === "SCHEDULED" &&
+      !isLive &&
+      !kickoffPassed;
     const liveScore = fixture.score
       ? `${fixture.score.home}–${fixture.score.away}`
       : null;
@@ -165,7 +171,9 @@ export class App {
     const confidence = hasPred ? prediction!.final.confidence : "";
     const phase = prediction?.phase ?? "final";
     const lockStatus = !hasPred
-      ? `<span class="badge badge--pending">Awaiting prediction</span>`
+      ? showPendingPredCopy
+        ? `<span class="badge badge--pending">Awaiting prediction</span>`
+        : ""
       : phase === "early"
         ? `<span class="badge badge--draft">Early estimate · refines 2–4h before kick-off</span>`
         : locked
@@ -215,7 +223,7 @@ export class App {
             <span class="team__name">${escapeHtml(fixture.awayTeam.shortName)}</span>
           </div>
         </div>
-        ${hasPred ? this.renderProbBar(prediction!, fixture.homeTeam.tla, fixture.awayTeam.tla) : '<div class="no-pred">Early estimate ~12h before kick-off · refined 2–4h before</div>'}
+        ${hasPred ? this.renderProbBar(prediction!, fixture.homeTeam.tla, fixture.awayTeam.tla) : showPendingPredCopy ? '<div class="no-pred">Early estimate ~12h before kick-off · refined 2–4h before</div>' : ""}
         <div class="match-card__footer">
           <div class="match-card__badges">
             ${lockStatus}
