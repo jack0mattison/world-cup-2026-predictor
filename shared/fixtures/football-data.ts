@@ -105,14 +105,26 @@ export class FootballDataProvider implements FixturesProvider {
   }
 
   async fetchFixtures(): Promise<Fixture[]> {
-    const data = (await this.fetch("/competitions/WC/matches?season=2026")) as {
-      matches?: FootballDataMatch[];
-    };
-    const matches = data.matches ?? [];
-    if (matches.length === 0) {
-      throw new Error("football-data.org returned no WC 2026 matches");
+    const paths = [
+      "/competitions/WC/matches?season=2026",
+      "/competitions/WC/matches",
+    ];
+    let lastError: Error | undefined;
+
+    for (const path of paths) {
+      try {
+        const data = (await this.fetch(path)) as { matches?: FootballDataMatch[] };
+        const matches = data.matches ?? [];
+        if (matches.length === 0) {
+          throw new Error(`football-data.org returned no matches for ${path}`);
+        }
+        return matches.map(mapMatch).sort((a, b) => a.utcDate.localeCompare(b.utcDate));
+      } catch (err) {
+        lastError = err instanceof Error ? err : new Error(String(err));
+      }
     }
-    return matches.map(mapMatch).sort((a, b) => a.utcDate.localeCompare(b.utcDate));
+
+    throw lastError ?? new Error("football-data.org returned no WC matches");
   }
 
   async fetchResults(matchIds: number[]): Promise<Fixture[]> {

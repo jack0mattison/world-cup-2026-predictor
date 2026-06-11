@@ -2,9 +2,10 @@ import type { Handler } from "@netlify/functions";
 import { ensureFixtures } from "../../shared/fixtures/sync.js";
 import { loadAppData } from "../../shared/storage/blobs.js";
 
-export const handler: Handler = async () => {
+export const handler: Handler = async (event) => {
   try {
-    await ensureFixtures();
+    const force = event.queryStringParameters?.refresh === "1";
+    await ensureFixtures(force);
     const data = await loadAppData();
     return {
       statusCode: 200,

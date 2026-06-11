@@ -55,5 +55,11 @@ export function getDevSampleData(): AppData {
         }
       : null,
     lastRefreshed: new Date().toISOString(),
+    meta: {
+      fixtureSource: "sample",
+      apiKeyConfigured: false,
+      lastIngestError: null,
+      fixtureCount: fixtures.length,
+    },
   };
 }

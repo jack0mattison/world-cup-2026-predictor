@@ -113,10 +113,18 @@ export interface AccuracyStats {
   gradings: MatchGrading[];
 }
 
+export interface DataMeta {
+  fixtureSource: "football-data.org" | "sample";
+  apiKeyConfigured: boolean;
+  lastIngestError: string | null;
+  fixtureCount: number;
+}
+
 export interface AppData {
   fixtures: Fixture[];
   predictions: Record<string, LockedPrediction>;
   results: Record<string, MatchResult>;
   stats: AccuracyStats | null;
   lastRefreshed: string;
+  meta: DataMeta;
 }

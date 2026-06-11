@@ -5,7 +5,12 @@ import {
   setFixturesRefreshedAt,
 } from "../storage/blobs.js";
 import type { Fixture } from "../types.js";
-import { createFixturesProvider, refreshFixtures } from "./index.js";
+import {
+  createFixturesProvider,
+  hasFootballDataApiKey,
+  refreshFixtures,
+} from "./index.js";
+import { isSampleFixtures } from "./sample.js";
 
 const STALE_MS = 24 * 60 * 60 * 1000;
 
@@ -14,6 +19,12 @@ export async function ensureFixtures(force = false): Promise<Fixture[]> {
   const refreshedAt = await getFixturesRefreshedAt();
   const stale =
     !refreshedAt || Date.now() - new Date(refreshedAt).getTime() > STALE_MS;
+  const cachedSampleWithKey =
+    hasFootballDataApiKey() && isSampleFixtures(existing);
+
+  if (!force && cachedSampleWithKey) {
+    force = true;
+  }
 
   if (!force && existing.length > 0 && !stale) {
     return existing;

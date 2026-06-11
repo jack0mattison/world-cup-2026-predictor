@@ -1,5 +1,15 @@
 import type { Fixture } from "../types.js";
 
+export const SAMPLE_MATCH_ID_MIN = 1000;
+export const SAMPLE_MATCH_ID_MAX = 9999;
+
+export function isSampleFixtures(fixtures: Fixture[]): boolean {
+  return (
+    fixtures.length > 0 &&
+    fixtures.every((f) => f.id >= SAMPLE_MATCH_ID_MIN && f.id <= SAMPLE_MATCH_ID_MAX)
+  );
+}
+
 /** Fallback fixtures for local dev / API outage — opening group-stage matches */
 export function getSampleFixtures(): Fixture[] {
   const teams = {

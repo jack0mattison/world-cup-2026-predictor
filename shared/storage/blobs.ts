@@ -2,10 +2,13 @@ import { getStore } from "@netlify/blobs";
 import type {
   AccuracyStats,
   AppData,
+  DataMeta,
   Fixture,
   LockedPrediction,
   MatchResult,
 } from "../types.js";
+import { hasFootballDataApiKey } from "../config.js";
+import { isSampleFixtures } from "../fixtures/sample.js";
 
 const STORE_NAME = "world-cup-predictor";
 
@@ -50,6 +53,33 @@ export async function getFixturesRefreshedAt(): Promise<string | null> {
 
 export async function setFixturesRefreshedAt(iso: string): Promise<void> {
   await set("fixtures/refreshedAt", iso);
+}
+
+interface IngestMetaBlob {
+  fixtureSource?: DataMeta["fixtureSource"];
+  lastIngestError?: string | null;
+}
+
+export async function getIngestMetaBlob(): Promise<IngestMetaBlob> {
+  const raw = await get("fixtures/meta");
+  if (!raw) return {};
+  return JSON.parse(raw) as IngestMetaBlob;
+}
+
+export async function setIngestMeta(partial: IngestMetaBlob): Promise<void> {
+  const current = await getIngestMetaBlob();
+  await set("fixtures/meta", JSON.stringify({ ...current, ...partial }));
+}
+
+export async function buildDataMeta(fixtures: Fixture[]): Promise<DataMeta> {
+  const blob = await getIngestMetaBlob();
+  const sample = isSampleFixtures(fixtures);
+  return {
+    fixtureSource: blob.fixtureSource ?? (sample ? "sample" : "football-data.org"),
+    apiKeyConfigured: hasFootballDataApiKey(),
+    lastIngestError: blob.lastIngestError ?? null,
+    fixtureCount: fixtures.length,
+  };
 }
 
 export async function getPrediction(matchId: number): Promise<LockedPrediction | null> {
@@ -109,11 +139,13 @@ export async function loadAppData(): Promise<AppData> {
     getAllResults(),
     getStats(),
   ]);
+  const meta = await buildDataMeta(fixtures);
   return {
     fixtures,
     predictions,
     results,
     stats,
     lastRefreshed: new Date().toISOString(),
+    meta,
   };
 }
