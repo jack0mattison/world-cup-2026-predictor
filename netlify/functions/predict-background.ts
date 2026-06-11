@@ -1,12 +1,14 @@
 import type { Config, Handler } from "@netlify/functions";
 import { runPredictions } from "../../shared/prediction/runner.js";
+import { connectBlobs } from "../../shared/storage/connect-blobs.js";
 
 export const config: Config = {
   schedule: "@hourly",
 };
 
 /** Background function (15 min) — Brave Search + OpenRouter LLM batches */
-export const handler: Handler = async (_event, context) => {
+export const handler: Handler = async (event, context) => {
+  connectBlobs(event);
   context.callbackWaitsForEmptyEventLoop = false;
   try {
     const result = await runPredictions();

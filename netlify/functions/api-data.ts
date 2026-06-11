@@ -1,9 +1,11 @@
 import type { Handler } from "@netlify/functions";
 import { hasLiveOrRecentMatches } from "../../shared/fixtures/live.js";
 import { ensureFixtures } from "../../shared/fixtures/sync.js";
+import { connectBlobs } from "../../shared/storage/connect-blobs.js";
 import { getFixtures, loadAppData } from "../../shared/storage/blobs.js";
 
 export const handler: Handler = async (event) => {
+  connectBlobs(event);
   try {
     const force =
       event.queryStringParameters?.refresh === "1" ||

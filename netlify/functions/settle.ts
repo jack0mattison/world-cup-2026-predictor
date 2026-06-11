@@ -1,5 +1,6 @@
 import type { Config, Handler } from "@netlify/functions";
 import { createFixturesProvider, refreshFixtures } from "../../shared/fixtures/index.js";
+import { connectBlobs } from "../../shared/storage/connect-blobs.js";
 import { computeStats, gradeMatch } from "../../shared/prediction/index.js";
 import type { MatchResult } from "../../shared/types.js";
 import {
@@ -15,7 +16,8 @@ export const config: Config = {
   schedule: "0 */2 * * *",
 };
 
-export const handler: Handler = async () => {
+export const handler: Handler = async (event) => {
+  connectBlobs(event);
   try {
     const provider = createFixturesProvider();
     const existing = await getFixtures();
