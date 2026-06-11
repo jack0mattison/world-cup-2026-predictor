@@ -150,7 +150,7 @@ function mapMatch(m: FootballDataMatch): Fixture {
     score: current ? { home: current.home, away: current.away, winner } : undefined,
   };
 
-  if (status === "LIVE") {
+  if (status === "LIVE" || m.minute !== null) {
     if (m.minute !== null && m.minute !== undefined) fixture.minute = m.minute;
     if (m.injuryTime !== null && m.injuryTime !== undefined) fixture.injuryTime = m.injuryTime;
   }
@@ -207,5 +207,57 @@ export class FootballDataProvider implements FixturesProvider {
     const all = await this.fetchFixtures();
     const idSet = new Set(matchIds);
     return all.filter((f) => idSet.has(f.id) && f.status === "FINISHED");
+  }
+
+  private async fetchMatchesFromPath(path: string): Promise<Fixture[]> {
+    const data = (await this.fetch(path)) as { matches?: FootballDataMatch[] };
+    return (data.matches ?? [])
+      .filter(isPlayableMatch)
+      .map(mapMatch);
+  }
+
+  async fetchMatchById(id: number): Promise<Fixture | null> {
+    try {
+      const m = (await this.fetch(`/matches/${id}`)) as FootballDataMatch;
+      if (!isPlayableMatch(m)) return null;
+      return mapMatch(m);
+    } catch {
+      return null;
+    }
+  }
+
+  /** Fresher status/scores than the bulk season list (free tier lags on the latter) */
+  async fetchLiveSnapshot(fixtures: Fixture[]): Promise<Fixture[]> {
+    const now = Date.now();
+    const today = new Date().toISOString().slice(0, 10);
+    const updates: Fixture[] = [];
+
+    const paths = [
+      `/competitions/WC/matches?season=2026&status=LIVE`,
+      `/competitions/WC/matches?season=2026&status=IN_PLAY`,
+      `/competitions/WC/matches?season=2026&dateFrom=${today}&dateTo=${today}`,
+      `/matches?dateFrom=${today}&dateTo=${today}`,
+      `/matches?status=IN_PLAY&dateFrom=${today}&dateTo=${today}`,
+    ];
+
+    for (const path of paths) {
+      try {
+        updates.push(...(await this.fetchMatchesFromPath(path)));
+      } catch (err) {
+        console.warn(`Live snapshot path failed (${path}):`, err);
+      }
+    }
+
+    const overdue = fixtures.filter((f) => {
+      const kickoff = new Date(f.utcDate).getTime();
+      return kickoff < now && now - kickoff < 2.5 * 60 * 60 * 1000;
+    });
+
+    for (const f of overdue.slice(0, 6)) {
+      const fresh = await this.fetchMatchById(f.id);
+      if (fresh) updates.push(fresh);
+    }
+
+    return updates;
   }
 }

@@ -1,3 +1,4 @@
+import { formatLiveMinute, isEffectivelyLive } from "../shared/fixtures/live.js";
 import type { AppData, Fixture, LockedPrediction } from "../shared/types.js";
 import { escapeHtml, formatKickoff, isLocked, timeUntilKickoff } from "./utils.js";
 
@@ -22,7 +23,7 @@ export class App {
   }
 
   private hasLiveMatches(): boolean {
-    return this.data?.fixtures.some((f) => f.status === "LIVE") ?? false;
+    return this.data?.fixtures.some((f) => isEffectivelyLive(f)) ?? false;
   }
 
   private clearPolling(): void {
@@ -72,14 +73,16 @@ export class App {
   private getUpcoming(): Array<{ fixture: Fixture; prediction?: LockedPrediction }> {
     if (!this.data) return [];
     return this.data.fixtures
-      .filter((f) => f.status === "SCHEDULED" || f.status === "LIVE")
+      .filter((f) => f.status === "SCHEDULED" || f.status === "LIVE" || isEffectivelyLive(f))
       .map((f) => ({
         fixture: f,
         prediction: this.data!.predictions[String(f.id)],
       }))
       .sort((a, b) => {
-        if (a.fixture.status === "LIVE" && b.fixture.status !== "LIVE") return -1;
-        if (b.fixture.status === "LIVE" && a.fixture.status !== "LIVE") return 1;
+        const aLive = isEffectivelyLive(a.fixture);
+        const bLive = isEffectivelyLive(b.fixture);
+        if (aLive && !bLive) return -1;
+        if (bLive && !aLive) return 1;
         return a.fixture.utcDate.localeCompare(b.fixture.utcDate);
       });
   }
@@ -139,16 +142,17 @@ export class App {
     const expanded = this.expanded.has(fixture.id);
     const hasPred = !!prediction;
 
-    const isLive = fixture.status === "LIVE";
+    const isLive = isEffectivelyLive(fixture);
     const liveScore = fixture.score
       ? `${fixture.score.home}–${fixture.score.away}`
       : null;
+    const liveScorePending = isLive && !liveScore;
     const predScore = hasPred
       ? `${prediction!.final.scoreline.home}–${prediction!.final.scoreline.away}`
       : null;
 
-    const scoreDisplay = isLive && liveScore
-      ? liveScore
+    const scoreDisplay = isLive
+      ? liveScore ?? "–"
       : predScore ?? "—";
 
     const predHint =
@@ -156,12 +160,7 @@ export class App {
         ? `<span class="match-card__pred-hint">Pred ${predScore}</span>`
         : "";
 
-    const liveMinute =
-      isLive && fixture.minute !== undefined
-        ? `${fixture.minute}${fixture.injuryTime ? `+${fixture.injuryTime}` : ""}'`
-        : isLive
-          ? "LIVE"
-          : "";
+    const liveMinute = isLive ? formatLiveMinute(fixture) ?? "LIVE" : "";
 
     const confidence = hasPred ? prediction!.final.confidence : "";
     const lockStatus = !hasPred
@@ -200,7 +199,7 @@ export class App {
       <article class="match-card ${mode === "result" ? "match-card--result" : ""} ${isLive ? "match-card--live" : ""}" data-id="${fixture.id}">
         <div class="match-card__meta">
           ${fixture.group ? `<span class="group">Group ${fixture.group}</span>` : `<span class="group">${fixture.stage.replace(/_/g, " ")}</span>`}
-          ${isLive ? `<span class="badge badge--live"><span class="live-dot"></span>${liveMinute}</span>` : `<time datetime="${fixture.utcDate}">${local}</time>`}
+          ${isLive ? `<span class="badge badge--live"><span class="live-dot"></span>${liveMinute}</span>${liveScorePending ? '<span class="badge badge--live-delay">Score updating</span>' : ""}` : `<time datetime="${fixture.utcDate}">${local}</time>`}
         </div>
         <div class="match-card__teams">
           <div class="team team--home">

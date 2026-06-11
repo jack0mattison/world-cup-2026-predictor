@@ -196,6 +196,12 @@ body {
   letter-spacing: 0.06em;
 }
 
+.badge--live-delay {
+  color: var(--text-muted);
+  background: var(--bg-elevated);
+  font-size: 0.55rem;
+}
+
 .live-dot {
   width: 6px;
   height: 6px;
