@@ -13,7 +13,7 @@ import { isSampleFixtures } from "../fixtures/sample.js";
 const STORE_NAME = "world-cup-predictor";
 
 function store() {
-  return getStore({ name: STORE_NAME, consistency: "strong" });
+  return getStore({ name: STORE_NAME });
 }
 
 /** In-memory fallback only for offline local dev (never in deployed Netlify functions) */
