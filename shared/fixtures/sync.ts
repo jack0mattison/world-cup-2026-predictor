@@ -10,6 +10,7 @@ import {
   hasFootballDataApiKey,
   refreshFixtures,
 } from "./index.js";
+import { needsLiveFixtureRefresh } from "./live.js";
 import { isSampleFixtures } from "./sample.js";
 
 const STALE_MS = 24 * 60 * 60 * 1000;
@@ -19,6 +20,7 @@ export async function ensureFixtures(force = false): Promise<Fixture[]> {
   const refreshedAt = await getFixturesRefreshedAt();
   const stale =
     !refreshedAt || Date.now() - new Date(refreshedAt).getTime() > STALE_MS;
+  const liveStale = needsLiveFixtureRefresh(existing, refreshedAt);
   const cachedSampleWithKey =
     hasFootballDataApiKey() && isSampleFixtures(existing);
 
@@ -26,7 +28,7 @@ export async function ensureFixtures(force = false): Promise<Fixture[]> {
     force = true;
   }
 
-  if (!force && existing.length > 0 && !stale) {
+  if (!force && existing.length > 0 && !stale && !liveStale) {
     return existing;
   }
 

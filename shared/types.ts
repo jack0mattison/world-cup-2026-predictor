@@ -29,10 +29,13 @@ export interface Fixture {
   matchday?: number;
   knockout: boolean;
   score?: {
-    home: number | null;
-    away: number | null;
+    home: number;
+    away: number;
     winner?: "HOME" | "AWAY" | "DRAW";
   };
+  /** Match minute when status is LIVE */
+  minute?: number;
+  injuryTime?: number;
 }
 
 export type Confidence = "low" | "medium" | "high";

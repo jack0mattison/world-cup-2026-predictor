@@ -3,10 +3,13 @@ import { escapeHtml, formatKickoff, isLocked, timeUntilKickoff } from "./utils.j
 
 type View = "upcoming" | "results" | "accuracy";
 
+const LIVE_POLL_MS = 60_000;
+
 export class App {
   private data: AppData | null = null;
   private view: View = "upcoming";
   private expanded = new Set<number>();
+  private pollTimer: ReturnType<typeof setInterval> | null = null;
   private root: HTMLElement;
 
   constructor(root: HTMLElement) {
@@ -15,9 +18,34 @@ export class App {
 
   async init(): Promise<void> {
     this.renderLoading();
+    await this.refreshData(false);
+  }
+
+  private hasLiveMatches(): boolean {
+    return this.data?.fixtures.some((f) => f.status === "LIVE") ?? false;
+  }
+
+  private clearPolling(): void {
+    if (this.pollTimer) {
+      clearInterval(this.pollTimer);
+      this.pollTimer = null;
+    }
+  }
+
+  private schedulePolling(): void {
+    this.clearPolling();
+    if (this.view === "upcoming" && this.hasLiveMatches()) {
+      this.pollTimer = setInterval(() => {
+        void this.refreshData(true);
+      }, LIVE_POLL_MS);
+    }
+  }
+
+  private async refreshData(live: boolean): Promise<void> {
     const { fetchAppData } = await import("./api.js");
-    this.data = await fetchAppData();
+    this.data = await fetchAppData(live);
     this.render();
+    this.schedulePolling();
   }
 
   private renderLoading(): void {
@@ -32,6 +60,7 @@ export class App {
   private setView(view: View): void {
     this.view = view;
     this.render();
+    this.schedulePolling();
   }
 
   private toggleExpand(id: number): void {
@@ -48,7 +77,11 @@ export class App {
         fixture: f,
         prediction: this.data!.predictions[String(f.id)],
       }))
-      .sort((a, b) => a.fixture.utcDate.localeCompare(b.fixture.utcDate));
+      .sort((a, b) => {
+        if (a.fixture.status === "LIVE" && b.fixture.status !== "LIVE") return -1;
+        if (b.fixture.status === "LIVE" && a.fixture.status !== "LIVE") return 1;
+        return a.fixture.utcDate.localeCompare(b.fixture.utcDate);
+      });
   }
 
   private getResults(): Array<{
@@ -106,9 +139,29 @@ export class App {
     const expanded = this.expanded.has(fixture.id);
     const hasPred = !!prediction;
 
-    const scoreDisplay = hasPred
+    const isLive = fixture.status === "LIVE";
+    const liveScore = fixture.score
+      ? `${fixture.score.home}–${fixture.score.away}`
+      : null;
+    const predScore = hasPred
       ? `${prediction!.final.scoreline.home}–${prediction!.final.scoreline.away}`
-      : "—";
+      : null;
+
+    const scoreDisplay = isLive && liveScore
+      ? liveScore
+      : predScore ?? "—";
+
+    const predHint =
+      isLive && liveScore && predScore
+        ? `<span class="match-card__pred-hint">Pred ${predScore}</span>`
+        : "";
+
+    const liveMinute =
+      isLive && fixture.minute !== undefined
+        ? `${fixture.minute}${fixture.injuryTime ? `+${fixture.injuryTime}` : ""}'`
+        : isLive
+          ? "LIVE"
+          : "";
 
     const confidence = hasPred ? prediction!.final.confidence : "";
     const lockStatus = !hasPred
@@ -144,17 +197,17 @@ export class App {
       : "";
 
     return `
-      <article class="match-card ${mode === "result" ? "match-card--result" : ""}" data-id="${fixture.id}">
+      <article class="match-card ${mode === "result" ? "match-card--result" : ""} ${isLive ? "match-card--live" : ""}" data-id="${fixture.id}">
         <div class="match-card__meta">
           ${fixture.group ? `<span class="group">Group ${fixture.group}</span>` : `<span class="group">${fixture.stage.replace(/_/g, " ")}</span>`}
-          <time datetime="${fixture.utcDate}">${local}</time>
+          ${isLive ? `<span class="badge badge--live"><span class="live-dot"></span>${liveMinute}</span>` : `<time datetime="${fixture.utcDate}">${local}</time>`}
         </div>
         <div class="match-card__teams">
           <div class="team team--home">
             <span class="team__tla">${fixture.homeTeam.tla}</span>
             <span class="team__name">${escapeHtml(fixture.homeTeam.shortName)}</span>
           </div>
-          <div class="match-card__scoreline">${scoreDisplay}</div>
+          <div class="match-card__scoreline ${isLive ? "match-card__scoreline--live" : ""}">${scoreDisplay}${predHint}</div>
           <div class="team team--away">
             <span class="team__tla">${fixture.awayTeam.tla}</span>
             <span class="team__name">${escapeHtml(fixture.awayTeam.shortName)}</span>

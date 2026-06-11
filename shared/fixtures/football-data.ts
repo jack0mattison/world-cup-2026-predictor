@@ -32,6 +32,11 @@ interface FootballDataTeam {
   crest?: string;
 }
 
+interface FootballDataGoal {
+  minute?: number;
+  team?: { id?: number | null };
+}
+
 interface FootballDataMatch {
   id: number;
   utcDate: string;
@@ -39,13 +44,43 @@ interface FootballDataMatch {
   stage: string;
   group?: string | null;
   matchday?: number | null;
+  minute?: number | null;
+  injuryTime?: number | null;
   homeTeam: FootballDataTeam;
   awayTeam: FootballDataTeam;
   venue?: string | null;
+  goals?: FootballDataGoal[];
   score?: {
-    fullTime: { home: number | null; away: number | null };
+    fullTime?: { home: number | null; away: number | null };
+    halfTime?: { home: number | null; away: number | null };
     winner?: string | null;
   };
+}
+
+function extractCurrentScore(m: FootballDataMatch): { home: number; away: number } | null {
+  const ft = m.score?.fullTime;
+  if (ft?.home !== null && ft?.home !== undefined && ft?.away !== null && ft?.away !== undefined) {
+    return { home: ft.home, away: ft.away };
+  }
+
+  const ht = m.score?.halfTime;
+  if (ht?.home !== null && ht?.home !== undefined && ht?.away !== null && ht?.away !== undefined) {
+    return { home: ht.home, away: ht.away };
+  }
+
+  if (m.goals?.length) {
+    let home = 0;
+    let away = 0;
+    const homeId = m.homeTeam?.id;
+    const awayId = m.awayTeam?.id;
+    for (const g of m.goals) {
+      if (g.team?.id === homeId) home++;
+      else if (g.team?.id === awayId) away++;
+    }
+    return { home, away };
+  }
+
+  return null;
 }
 
 function mapTeam(t: FootballDataTeam | null | undefined, fallback = "TBD"): Team {
@@ -91,20 +126,20 @@ function normalizeGroup(group: string | null | undefined): string | undefined {
 
 function mapMatch(m: FootballDataMatch): Fixture {
   const stage = STAGE_MAP[m.stage] ?? "GROUP_STAGE";
-  const home = m.score?.fullTime.home;
-  const away = m.score?.fullTime.away;
+  const status = normalizeStatus(m.status);
+  const current = extractCurrentScore(m);
   let winner: "HOME" | "AWAY" | "DRAW" | undefined;
 
-  if (home !== null && home !== undefined && away !== null && away !== undefined) {
-    if (home > away) winner = "HOME";
-    else if (away > home) winner = "AWAY";
+  if (current) {
+    if (current.home > current.away) winner = "HOME";
+    else if (current.away > current.home) winner = "AWAY";
     else winner = "DRAW";
   }
 
-  return {
+  const fixture: Fixture = {
     id: m.id,
     utcDate: m.utcDate,
-    status: normalizeStatus(m.status),
+    status,
     stage,
     group: normalizeGroup(m.group),
     homeTeam: mapTeam(m.homeTeam),
@@ -112,11 +147,15 @@ function mapMatch(m: FootballDataMatch): Fixture {
     venue: m.venue ?? undefined,
     matchday: m.matchday ?? undefined,
     knockout: KNOCKOUT_STAGES.has(stage),
-    score:
-      home !== null && home !== undefined
-        ? { home, away: away ?? 0, winner }
-        : undefined,
+    score: current ? { home: current.home, away: current.away, winner } : undefined,
   };
+
+  if (status === "LIVE") {
+    if (m.minute !== null && m.minute !== undefined) fixture.minute = m.minute;
+    if (m.injuryTime !== null && m.injuryTime !== undefined) fixture.injuryTime = m.injuryTime;
+  }
+
+  return fixture;
 }
 
 export class FootballDataProvider implements FixturesProvider {
