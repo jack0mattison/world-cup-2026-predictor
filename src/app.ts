@@ -1,8 +1,9 @@
 import { formatLiveMinute, isEffectivelyLive } from "../shared/fixtures/live.js";
 import type { AppData, Fixture, LockedPrediction } from "../shared/types.js";
+import { renderHowItWorks } from "./how-it-works.js";
 import { escapeHtml, formatKickoff, isLocked, timeUntilKickoff } from "./utils.js";
 
-type View = "upcoming" | "results" | "accuracy";
+type View = "upcoming" | "results" | "accuracy" | "how";
 
 const LIVE_POLL_MS = 60_000;
 
@@ -306,7 +307,9 @@ export class App {
         ? this.renderUpcoming()
         : this.view === "results"
           ? this.renderResults()
-          : this.renderAccuracy();
+          : this.view === "accuracy"
+            ? this.renderAccuracy()
+            : renderHowItWorks();
 
     this.root.innerHTML = `
       <header class="header">
@@ -331,6 +334,10 @@ export class App {
         <button class="bottom-nav__btn ${this.view === "accuracy" ? "bottom-nav__btn--active" : ""}" data-view="accuracy" aria-current="${this.view === "accuracy"}">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
           <span>Accuracy</span>
+        </button>
+        <button class="bottom-nav__btn ${this.view === "how" ? "bottom-nav__btn--active" : ""}" data-view="how" aria-current="${this.view === "how"}">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+          <span>How</span>
         </button>
       </nav>
     `;
