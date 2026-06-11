@@ -16,23 +16,33 @@ function store() {
   return getStore({ name: STORE_NAME, consistency: "strong" });
 }
 
-/** In-memory fallback for local dev without Netlify Blobs */
+/** In-memory fallback only for offline local dev (never in deployed Netlify functions) */
 const memoryStore = new Map<string, string>();
+
+function allowMemoryFallback(): boolean {
+  return !process.env.NETLIFY && !process.env.AWS_LAMBDA_FUNCTION_NAME;
+}
 
 async function get(key: string): Promise<string | null> {
   try {
-    const s = store();
-    return await s.get(key);
-  } catch {
+    return await store().get(key);
+  } catch (err) {
+    if (!allowMemoryFallback()) {
+      console.error(`Blob get failed for ${key}:`, err);
+      throw err;
+    }
     return memoryStore.get(key) ?? null;
   }
 }
 
 async function set(key: string, value: string): Promise<void> {
   try {
-    const s = store();
-    await s.set(key, value);
-  } catch {
+    await store().set(key, value);
+  } catch (err) {
+    if (!allowMemoryFallback()) {
+      console.error(`Blob set failed for ${key}:`, err);
+      throw err;
+    }
     memoryStore.set(key, value);
   }
 }
@@ -93,8 +103,22 @@ export async function setPrediction(prediction: LockedPrediction): Promise<void>
 }
 
 export async function getAllPredictions(): Promise<Record<string, LockedPrediction>> {
-  const fixtures = await getFixtures();
   const predictions: Record<string, LockedPrediction> = {};
+
+  try {
+    const { blobs } = await store().list({ prefix: "predictions/" });
+    for (const entry of blobs) {
+      const raw = await get(entry.key);
+      if (!raw) continue;
+      const p = JSON.parse(raw) as LockedPrediction;
+      predictions[String(p.matchId)] = p;
+    }
+    if (Object.keys(predictions).length > 0) return predictions;
+  } catch (err) {
+    console.warn("Blob list for predictions failed, falling back to fixture scan:", err);
+  }
+
+  const fixtures = await getFixtures();
   for (const f of fixtures) {
     const p = await getPrediction(f.id);
     if (p) predictions[String(f.id)] = p;
