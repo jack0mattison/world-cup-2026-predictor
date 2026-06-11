@@ -28,10 +28,15 @@ export async function refreshFixtures(
   existing?: Fixture[]
 ): Promise<Fixture[]> {
   try {
-    return await provider.fetchFixtures();
+    const fixtures = await provider.fetchFixtures();
+    if (fixtures.length === 0) throw new Error("Provider returned empty fixture list");
+    return fixtures;
   } catch (err) {
     console.error(`Fixture fetch failed (${provider.name}):`, err);
     if (existing?.length) return existing;
+    console.warn("Falling back to sample fixtures");
     return getSampleFixtures();
   }
 }
+
+export { ensureFixtures } from "./sync.js";

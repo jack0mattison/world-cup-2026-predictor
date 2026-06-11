@@ -44,6 +44,14 @@ export async function setFixtures(fixtures: Fixture[]): Promise<void> {
   await set("fixtures", JSON.stringify(fixtures));
 }
 
+export async function getFixturesRefreshedAt(): Promise<string | null> {
+  return get("fixtures/refreshedAt");
+}
+
+export async function setFixturesRefreshedAt(iso: string): Promise<void> {
+  await set("fixtures/refreshedAt", iso);
+}
+
 export async function getPrediction(matchId: number): Promise<LockedPrediction | null> {
   const raw = await get(`predictions/${matchId}`);
   if (!raw) return null;

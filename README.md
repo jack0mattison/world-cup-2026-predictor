@@ -14,7 +14,7 @@ Probabilistic pre-match predictions for every FIFA World Cup 2026 fixture — lo
 ```bash
 npm install
 npm run dev          # Frontend only (uses sample data fallback)
-netlify dev          # Full stack with functions + Blobs
+npm run dev:netlify  # Full stack with functions + Blobs (.env.local)
 ```
 
 ## Environment variables
@@ -24,7 +24,8 @@ Set in Netlify dashboard (or `.env` for `netlify dev`):
 | Variable | Required | Purpose |
 |---|---|---|
 | `FOOTBALL_DATA_API_KEY` | M1 (prod) | Fixture & result ingestion |
-| `OPENAI_API_KEY` | M2 | LLM contextual adjustment |
+| `OPENROUTER_API_KEY` | M2 | LLM contextual adjustment (via OpenRouter) |
+| `OPENROUTER_MODEL` | M2 | Model slug, e.g. `anthropic/claude-sonnet-4` |
 | `BRAVE_SEARCH_API_KEY` | M2 | Pre-match context gathering |
 
 ## Scheduled functions
