@@ -45,13 +45,17 @@ function fixturesInEarlyWindow(fixtures: Fixture[], now: number): Fixture[] {
 function fixturesInFinalWindow(fixtures: Fixture[], now: number): Fixture[] {
   const minMs = FINAL_MIN_HOURS * 60 * 60 * 1000;
   const maxMs = FINAL_MAX_HOURS * 60 * 60 * 1000;
+  const afterKickoffCatchUpMs = 4 * 60 * 60 * 1000;
 
   return fixtures.filter((fixture) => {
-    if (fixture.status !== "SCHEDULED") return false;
+    if (fixture.status === "FINISHED" || fixture.status === "CANCELLED") return false;
+    if (fixture.status !== "SCHEDULED" && fixture.status !== "LIVE") return false;
     const timeUntil = new Date(fixture.utcDate).getTime() - now;
     const inWindow = timeUntil >= minMs && timeUntil <= maxMs;
     const catchUp = timeUntil > 0 && timeUntil < minMs;
-    return inWindow || catchUp;
+    const afterKickoffCatchUp =
+      timeUntil <= 0 && timeUntil > -afterKickoffCatchUpMs;
+    return inWindow || catchUp || afterKickoffCatchUp;
   });
 }
 

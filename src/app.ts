@@ -1,7 +1,13 @@
 import { formatLiveMinute, isEffectivelyLive } from "../shared/fixtures/live.js";
 import type { AppData, Fixture, LockedPrediction } from "../shared/types.js";
 import { renderHowItWorks } from "./how-it-works.js";
-import { escapeHtml, formatKickoff, isLocked, timeUntilKickoff } from "./utils.js";
+import {
+  escapeHtml,
+  formatKickoff,
+  formatUkDateTime,
+  isLocked,
+  timeUntilKickoff,
+} from "./utils.js";
 
 type View = "upcoming" | "results" | "accuracy" | "how";
 
@@ -178,7 +184,7 @@ export class App {
       : phase === "early"
         ? `<span class="badge badge--draft">Early estimate · refines 2–4h before kick-off</span>`
         : locked
-          ? `<span class="badge badge--locked">Locked ${new Date(prediction!.lockedAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>`
+          ? `<span class="badge badge--locked">Locked ${formatUkDateTime(prediction!.lockedAt)}</span>`
           : `<span class="badge badge--open">Locks at kick-off · ${timeUntilKickoff(fixture.utcDate)}</span>`;
 
     const resultBadge =
@@ -318,6 +324,7 @@ export class App {
           <div>
             <h1>Mattison World Cup Predictor</h1>
             <p class="header__tagline">Locked before kick-off · Tracked for accuracy</p>
+            <p class="header__tz-note">All times shown in UK time (BST)</p>
           </div>
         </div>
       </header>
@@ -336,7 +343,7 @@ export class App {
           <span>Accuracy</span>
         </button>
         <button class="bottom-nav__btn ${this.view === "how" ? "bottom-nav__btn--active" : ""}" data-view="how" aria-current="${this.view === "how"}">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
           <span>How</span>
         </button>
       </nav>

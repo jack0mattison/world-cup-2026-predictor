@@ -10,9 +10,9 @@ import {
   hasFootballDataApiKey,
   refreshFixtures,
 } from "./index.js";
-import { fetchEspnLiveUpdates } from "./espn.js";
+import { fetchEspnLiveUpdates, fixturesNeedEspnRefresh } from "./espn.js";
 import { FootballDataProvider } from "./football-data.js";
-import { hasLiveOrRecentMatches, needsLiveFixtureRefresh } from "./live.js";
+import { needsLiveFixtureRefresh } from "./live.js";
 import { mergeFixtures } from "./merge.js";
 import { isSampleFixtures } from "./sample.js";
 
@@ -24,6 +24,7 @@ export async function ensureFixtures(force = false): Promise<Fixture[]> {
   const stale =
     !refreshedAt || Date.now() - new Date(refreshedAt).getTime() > STALE_MS;
   const liveStale = needsLiveFixtureRefresh(existing, refreshedAt);
+  const espnStale = fixturesNeedEspnRefresh(existing);
   const cachedSampleWithKey =
     hasFootballDataApiKey() && isSampleFixtures(existing);
 
@@ -31,8 +32,23 @@ export async function ensureFixtures(force = false): Promise<Fixture[]> {
     force = true;
   }
 
-  if (!force && existing.length > 0 && !stale && !liveStale) {
+  if (!force && existing.length > 0 && !stale && !liveStale && !espnStale) {
     return existing;
+  }
+
+  if (!force && !stale && !liveStale && espnStale && existing.length > 0) {
+    let fixtures = existing;
+    try {
+      const espnUpdates = await fetchEspnLiveUpdates(fixtures);
+      fixtures = mergeFixtures(fixtures, espnUpdates);
+    } catch (err) {
+      console.warn("ESPN live merge failed:", err);
+    }
+    if (fixtures.length > 0) {
+      await setFixtures(fixtures);
+      await setFixturesRefreshedAt(new Date().toISOString());
+    }
+    return fixtures;
   }
 
   const provider = createFixturesProvider();
@@ -47,7 +63,7 @@ export async function ensureFixtures(force = false): Promise<Fixture[]> {
     }
   }
 
-  if (hasLiveOrRecentMatches(fixtures) && (liveStale || force)) {
+  if (fixturesNeedEspnRefresh(fixtures)) {
     try {
       const espnUpdates = await fetchEspnLiveUpdates(fixtures);
       fixtures = mergeFixtures(fixtures, espnUpdates);

@@ -1,15 +1,33 @@
 import type { Fixture, LockedPrediction } from "../shared/types.js";
 
+export const UK_TIMEZONE = "Europe/London";
+
+const ukDateTimeOptions: Intl.DateTimeFormatOptions = {
+  timeZone: UK_TIMEZONE,
+  weekday: "short",
+  day: "numeric",
+  month: "short",
+  hour: "2-digit",
+  minute: "2-digit",
+  timeZoneName: "short",
+};
+
+const ukShortDateTimeOptions: Intl.DateTimeFormatOptions = {
+  timeZone: UK_TIMEZONE,
+  month: "short",
+  day: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  timeZoneName: "short",
+};
+
 export function formatKickoff(utcDate: string): { local: string; venue?: string } {
-  const d = new Date(utcDate);
-  const local = d.toLocaleString(undefined, {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const local = new Date(utcDate).toLocaleString("en-GB", ukDateTimeOptions);
   return { local };
+}
+
+export function formatUkDateTime(isoDate: string): string {
+  return new Date(isoDate).toLocaleString("en-GB", ukShortDateTimeOptions);
 }
 
 export function timeUntilKickoff(utcDate: string): string {
