@@ -180,6 +180,16 @@ body {
   background: rgba(61, 255, 138, 0.15);
 }
 
+.results-notice {
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--radius);
+  background: rgba(247, 224, 109, 0.1);
+  border: 1px solid rgba(247, 224, 109, 0.28);
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--draw);
+}
+
 /* Main */
 .main {
   flex: 1;

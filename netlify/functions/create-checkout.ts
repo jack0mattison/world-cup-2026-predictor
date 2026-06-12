@@ -6,9 +6,10 @@ import { isDonationPresetAmount } from "../../shared/donate.js";
 function getOrigin(event: Parameters<Handler>[0]): string {
   const headers = event.headers;
   const host = headers.host || headers["x-forwarded-host"];
-  const proto = headers["x-forwarded-proto"] || "https";
-  if (host) return `${proto}://${host}`;
-  return "http://localhost:8888";
+  if (!host) return "http://localhost:8888";
+  const isLocalhost = host.startsWith("localhost") || host.startsWith("127.0.0.1");
+  const proto = isLocalhost ? "http" : headers["x-forwarded-proto"] || "https";
+  return `${proto}://${host}`;
 }
 
 export const handler: Handler = async (event) => {

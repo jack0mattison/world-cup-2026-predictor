@@ -111,8 +111,21 @@ export class App {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ amount }),
       });
-      const data = (await res.json()) as { url?: string; error?: string };
+      const text = await res.text();
+      let data: { url?: string; error?: string } = {};
+      if (text) {
+        try {
+          data = JSON.parse(text) as { url?: string; error?: string };
+        } catch {
+          throw new Error("Checkout returned an invalid response");
+        }
+      }
       if (!res.ok || !data.url) {
+        if (res.status === 404) {
+          throw new Error(
+            "Donations need the full dev server — open http://localhost:8888 (npm run dev:netlify)"
+          );
+        }
         throw new Error(data.error || "Checkout failed");
       }
       window.location.href = data.url;
@@ -320,14 +333,31 @@ export class App {
     return matches.map((m) => this.renderMatchCard(m.fixture, m.prediction)).join("");
   }
 
+  private showMissedLaunchNotice(): boolean {
+    if (!this.data) return false;
+    const fixture = this.data.fixtures.find(
+      (f) =>
+        f.homeTeam.tla === "MEX" &&
+        f.awayTeam.tla === "RSA" &&
+        f.status === "FINISHED"
+    );
+    return Boolean(fixture && !this.data.predictions[String(fixture.id)]);
+  }
+
   private renderResults(): string {
     const matches = this.getResults();
     if (!matches.length) {
       return `<div class="empty"><p>No results yet — tournament starts today.</p></div>`;
     }
-    return matches
-      .map((m) => this.renderMatchCard(m.fixture, m.prediction, "result", m.grading))
-      .join("");
+    const notice = this.showMissedLaunchNotice()
+      ? `<p class="results-notice" role="note">Psst — we missed the Mexico v. RSA game; we were still building the predictor right before kick-off!</p>`
+      : "";
+    return (
+      notice +
+      matches
+        .map((m) => this.renderMatchCard(m.fixture, m.prediction, "result", m.grading))
+        .join("")
+    );
   }
 
   private renderAccuracy(): string {
