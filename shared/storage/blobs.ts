@@ -174,12 +174,19 @@ export async function setPredictRunMeta(partial: PredictMetaBlob): Promise<void>
 }
 
 export async function loadAppData(): Promise<AppData> {
-  const [fixtures, predictions, results, stats] = await Promise.all([
+  const [fixtures, predictions, existingResults] = await Promise.all([
     getFixtures(),
     getAllPredictions(),
     getAllResults(),
-    getStats(),
   ]);
+
+  const { refreshAccuracyStats } = await import("../prediction/settlement.js");
+  const { stats, results } = await refreshAccuracyStats(
+    fixtures,
+    predictions,
+    existingResults
+  );
+
   const meta = await buildDataMeta(fixtures);
   return {
     fixtures,

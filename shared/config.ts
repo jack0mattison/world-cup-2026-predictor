@@ -17,3 +17,13 @@ export function getOpenRouterModel(): string {
 export function isLlmLayerEnabled(): boolean {
   return hasBraveSearchApiKey() && hasOpenRouterApiKey();
 }
+
+export function hasStripeSecretKey(): boolean {
+  return Boolean(process.env.STRIPE_SECRET_KEY?.trim());
+}
+
+export function getStripeSecretKey(): string {
+  const key = process.env.STRIPE_SECRET_KEY?.trim();
+  if (!key) throw new Error("STRIPE_SECRET_KEY is not configured");
+  return key;
+}

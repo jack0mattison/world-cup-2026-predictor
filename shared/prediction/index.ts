@@ -7,3 +7,10 @@ export {
   findMissedFinalizations,
 } from "./schedule.js";
 export { brierScore, gradeMatch, computeStats } from "./scoring.js";
+export {
+  buildGradings,
+  isGradablePrediction,
+  refreshAccuracyStats,
+  resultFromFixture,
+  settleFinishedMatches,
+} from "./settlement.js";

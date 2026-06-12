@@ -1,4 +1,4 @@
-const CACHE = "wc26-v1";
+const CACHE = "wc26-v2";
 const SHELL = ["/", "/index.html", "/manifest.json"];
 
 self.addEventListener("install", (event) => {
@@ -18,7 +18,11 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
 
-  if (url.pathname.includes("/api-data") || url.pathname.includes("/.netlify/functions/")) {
+  if (
+    url.pathname.startsWith("/api/") ||
+    url.pathname.includes("/api-data") ||
+    url.pathname.includes("/.netlify/functions/")
+  ) {
     event.respondWith(
       fetch(event.request)
         .then((res) => {

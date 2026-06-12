@@ -1,3 +1,8 @@
+import {
+  DONATION_PRESET_AMOUNTS,
+  formatDonationLabel,
+  type DonationPresetAmount,
+} from "../shared/donate.js";
 import { formatLiveMinute, isEffectivelyLive } from "../shared/fixtures/live.js";
 import type { AppData, Fixture, LockedPrediction } from "../shared/types.js";
 import { renderHowItWorks } from "./how-it-works.js";
@@ -18,6 +23,9 @@ export class App {
   private view: View = "upcoming";
   private expanded = new Set<number>();
   private pollTimer: ReturnType<typeof setInterval> | null = null;
+  private donating = false;
+  private showThankYou = false;
+  private donateError: string | null = null;
   private root: HTMLElement;
 
   constructor(root: HTMLElement) {
@@ -25,8 +33,13 @@ export class App {
   }
 
   async init(): Promise<void> {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("donated") === "1") {
+      this.showThankYou = true;
+      window.history.replaceState({}, "", window.location.pathname);
+    }
     this.renderLoading();
-    await this.refreshData(false);
+    await this.refreshData();
   }
 
   private hasLiveMatches(): boolean {
@@ -44,14 +57,14 @@ export class App {
     this.clearPolling();
     if (this.view === "upcoming" && this.hasLiveMatches()) {
       this.pollTimer = setInterval(() => {
-        void this.refreshData(true);
+        void this.refreshData({ live: true });
       }, LIVE_POLL_MS);
     }
   }
 
-  private async refreshData(live: boolean): Promise<void> {
+  private async refreshData(opts: { live?: boolean; force?: boolean } = {}): Promise<void> {
     const { fetchAppData } = await import("./api.js");
-    this.data = await fetchAppData(live);
+    this.data = await fetchAppData(opts);
     this.render();
     this.schedulePolling();
   }
@@ -68,13 +81,67 @@ export class App {
   private setView(view: View): void {
     this.view = view;
     this.render();
-    this.schedulePolling();
+    if (view === "accuracy" || view === "results") {
+      void this.refreshData({ force: true, live: view === "results" });
+    } else {
+      this.schedulePolling();
+    }
   }
 
   private toggleExpand(id: number): void {
     if (this.expanded.has(id)) this.expanded.delete(id);
     else this.expanded.add(id);
     this.render();
+  }
+
+  private dismissThankYou(): void {
+    this.showThankYou = false;
+    this.render();
+  }
+
+  private async handleDonate(amount: DonationPresetAmount): Promise<void> {
+    if (this.donating) return;
+    this.donating = true;
+    this.donateError = null;
+    this.render();
+
+    try {
+      const res = await fetch("/api/create-checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount }),
+      });
+      const data = (await res.json()) as { url?: string; error?: string };
+      if (!res.ok || !data.url) {
+        throw new Error(data.error || "Checkout failed");
+      }
+      window.location.href = data.url;
+    } catch (err) {
+      this.donating = false;
+      this.donateError =
+        err instanceof Error ? err.message : "Could not start checkout";
+      this.render();
+    }
+  }
+
+  private renderDonateButtons(): string {
+    const buttons = DONATION_PRESET_AMOUNTS.map(
+      (amount) => `
+        <button
+          type="button"
+          class="donate-btn"
+          data-amount="${amount}"
+          ${this.donating ? "disabled" : ""}
+        >${formatDonationLabel(amount)}</button>
+      `
+    ).join("");
+
+    return `
+      <div class="header__donate">
+        <span class="header__donate-label">Support</span>
+        <div class="header__donate-btns">${buttons}</div>
+      </div>
+    `;
   }
 
   private getUpcoming(): Array<{ fixture: Fixture; prediction?: LockedPrediction }> {
@@ -266,7 +333,12 @@ export class App {
   private renderAccuracy(): string {
     const stats = this.data?.stats;
     if (!stats || stats.totalMatches === 0) {
-      return `<div class="empty"><p>Accuracy stats appear after the first settled match.</p></div>`;
+      const finishedCount = this.data?.fixtures.filter((f) => f.status === "FINISHED").length ?? 0;
+      const message =
+        finishedCount > 0
+          ? "No final predictions to grade yet — early estimates aren't counted until the final lock (2–4h before kick-off)."
+          : "Accuracy stats appear after the first settled match.";
+      return `<div class="empty"><p>${message}</p></div>`;
     }
 
     const brierDelta = stats.avgBrierScore - stats.baselineAvgBrierScore;
@@ -301,6 +373,7 @@ export class App {
           Model Brier vs Elo baseline: <strong>${brierBetter ? "beating" : "trailing"}</strong> by ${Math.abs(brierDelta).toFixed(3)}
         </div>
         <p class="accuracy-note">Predictions lock before kick-off. Brier score measures calibration — a 55% favourite losing isn't the same as a 90% upset.</p>
+        <p class="accuracy-updated">Updated ${formatUkDateTime(stats.updatedAt)}</p>
       </div>
     `;
   }
@@ -319,14 +392,32 @@ export class App {
 
     this.root.innerHTML = `
       <header class="header">
-        <div class="header__brand">
-          <img class="header__icon" src="/favicon.svg" width="40" height="40" alt="" />
-          <div>
-            <h1>Mattison World Cup Predictor</h1>
-            <p class="header__tagline">Locked before kick-off · Tracked for accuracy</p>
-            <p class="header__tz-note">All times shown in UK time (BST)</p>
+        <div class="header__top">
+          <div class="header__brand">
+            <img class="header__icon" src="/favicon.svg" width="40" height="40" alt="" />
+            <div>
+              <h1>Mattison World Cup Predictor</h1>
+              <p class="header__tagline">Locked before kick-off · Tracked for accuracy</p>
+              <p class="header__tz-note">All times shown in UK time (BST)</p>
+            </div>
           </div>
+          ${this.renderDonateButtons()}
         </div>
+        ${
+          this.showThankYou
+            ? `
+          <div class="thank-you" role="status">
+            <p>Thanks for supporting the predictor!</p>
+            <button type="button" class="thank-you__dismiss" aria-label="Dismiss">×</button>
+          </div>
+        `
+            : ""
+        }
+        ${
+          this.donateError
+            ? `<p class="header__donate-error" role="alert">${escapeHtml(this.donateError)}</p>`
+            : ""
+        }
       </header>
       <main class="main" id="main">${content}</main>
       <nav class="bottom-nav" aria-label="Main navigation">
@@ -366,6 +457,17 @@ export class App {
         const id = Number((card as HTMLElement)?.dataset.id);
         if (id) this.toggleExpand(id);
       });
+    });
+
+    this.root.querySelectorAll(".donate-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const amount = Number((btn as HTMLElement).dataset.amount);
+        if (amount) void this.handleDonate(amount as DonationPresetAmount);
+      });
+    });
+
+    this.root.querySelector(".thank-you__dismiss")?.addEventListener("click", () => {
+      this.dismissThankYou();
     });
   }
 }

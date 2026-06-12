@@ -27,6 +27,16 @@ Set in Netlify dashboard (or `.env` for `netlify dev`):
 | `OPENROUTER_API_KEY` | M2 | LLM contextual adjustment (via OpenRouter) |
 | `OPENROUTER_MODEL` | M2 | Model slug, e.g. `anthropic/claude-sonnet-4` |
 | `BRAVE_SEARCH_API_KEY` | M2 | Pre-match context gathering |
+| `STRIPE_SECRET_KEY` | Donations | Stripe Checkout for preset donate buttons (£3 / £5 / £10) |
+
+### Stripe donations
+
+1. Add `STRIPE_SECRET_KEY` in Netlify (use `sk_test_...` while testing).
+2. Run `npm run dev:netlify` locally with the same key in `.env` or `.env.local`.
+3. Click a donate button in the header → you should land on Stripe Checkout.
+4. Pay with test card `4242 4242 4242 4242`, any future expiry, any CVC.
+5. After payment you return to the site with a thank-you banner.
+6. Switch to `sk_live_...` in Netlify when ready for real donations.
 
 ## Scheduled functions
 

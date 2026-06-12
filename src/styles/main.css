@@ -58,10 +58,19 @@ body {
   background: linear-gradient(180deg, var(--bg) 70%, transparent);
 }
 
+.header__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
 .header__brand {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  min-width: 0;
+  flex: 1;
 }
 
 .header__icon {
@@ -89,6 +98,86 @@ body {
   letter-spacing: 0.02em;
   margin-top: 0.15rem;
   opacity: 0.85;
+}
+
+.header__donate {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.header__donate-label {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+.header__donate-btns {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.donate-btn {
+  font-family: var(--font-body);
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.35rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--accent);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.donate-btn:hover:not(:disabled) {
+  background: rgba(61, 255, 138, 0.12);
+  border-color: rgba(61, 255, 138, 0.35);
+}
+
+.donate-btn:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.header__donate-error {
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--miss);
+}
+
+.thank-you {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  padding: 0.6rem 0.85rem;
+  border-radius: var(--radius);
+  background: rgba(61, 255, 138, 0.12);
+  border: 1px solid rgba(61, 255, 138, 0.3);
+  font-size: 0.85rem;
+  color: var(--accent);
+}
+
+.thank-you__dismiss {
+  flex-shrink: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--accent);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.thank-you__dismiss:hover {
+  background: rgba(61, 255, 138, 0.15);
 }
 
 /* Main */
@@ -450,6 +539,13 @@ body {
   line-height: 1.6;
 }
 
+.accuracy-updated {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  text-align: center;
+  opacity: 0.8;
+}
+
 /* Empty & loading */
 .empty,
 .loading {
@@ -606,6 +702,11 @@ body {
 
   .header {
     padding: 1.5rem 1rem 1rem;
+  }
+
+  .donate-btn {
+    font-size: 0.75rem;
+    padding: 0.4rem 0.65rem;
   }
 
   .match-card {
