@@ -426,7 +426,7 @@ export class App {
           <div class="header__brand">
             <img class="header__icon" src="/favicon.svg" width="40" height="40" alt="" />
             <div>
-              <h1>Mattison World Cup Predictor</h1>
+              <h1>Mattison's AI World Cup Predictor</h1>
               <p class="header__tz-note">All times shown in UK time (BST)</p>
             </div>
           </div>

@@ -79,7 +79,7 @@ export const handler: Handler = async (event) => {
             currency: "gbp",
             unit_amount: amount,
             product_data: {
-              name: "Support Mattison World Cup Predictor",
+              name: "Support Mattison's AI World Cup Predictor",
             },
           },
         },

@@ -1,6 +1,6 @@
 {
-  "name": "Mattison World Cup Predictor",
-  "short_name": "Mattison WC",
+  "name": "Mattison's AI World Cup Predictor",
+  "short_name": "Mattison AI WC",
   "description": "Pre-match predictions for every FIFA World Cup 2026 fixture",
   "start_url": "/",
   "display": "standalone",

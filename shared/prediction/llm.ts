@@ -70,7 +70,7 @@ export async function fetchLlmAdjustment(
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
       "HTTP-Referer": "https://world-cup-2026-predictor.netlify.app",
-      "X-Title": "Mattison World Cup Predictor",
+      "X-Title": "Mattison's AI World Cup Predictor",
     },
     body: JSON.stringify({
       model: getOpenRouterModel(),
