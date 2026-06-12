@@ -761,6 +761,22 @@ body {
   margin-bottom: 0.15rem;
 }
 
+.how-page__contact {
+  margin-top: 0.25rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.how-page__contact a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.how-page__contact a:hover {
+  text-decoration: underline;
+}
+
 /* Desktop enhancement */
 @media (min-width: 768px) {
   .main {

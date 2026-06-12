@@ -62,6 +62,11 @@ export function renderHowItWorks(): string {
           <li><strong>Brier score</strong> — how well-calibrated were the probabilities? (A 55% favourite losing scores better than a 90% upset.)</li>
         </ul>
       </section>
+
+      <p class="how-page__contact">
+        Questions or feedback?
+        <a href="mailto:jack0mattison@gmail.com">Email the creator</a>
+      </p>
     </div>
   `;
 }
