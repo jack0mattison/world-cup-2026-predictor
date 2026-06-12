@@ -86,12 +86,6 @@ body {
   line-height: 1.1;
 }
 
-.header__tagline {
-  font-size: 0.7rem;
-  color: var(--text-muted);
-  letter-spacing: 0.02em;
-}
-
 .header__tz-note {
   font-size: 0.65rem;
   color: var(--text-muted);

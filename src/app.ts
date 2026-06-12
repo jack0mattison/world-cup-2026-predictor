@@ -427,7 +427,6 @@ export class App {
             <img class="header__icon" src="/favicon.svg" width="40" height="40" alt="" />
             <div>
               <h1>Mattison World Cup Predictor</h1>
-              <p class="header__tagline">Locked before kick-off · Tracked for accuracy</p>
               <p class="header__tz-note">All times shown in UK time (BST)</p>
             </div>
           </div>
