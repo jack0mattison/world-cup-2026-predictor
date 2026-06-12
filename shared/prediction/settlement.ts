@@ -8,10 +8,18 @@ import type {
 import { setResult, setStats } from "../storage/blobs.js";
 import { computeStats, gradeMatch } from "./scoring.js";
 
-/** Predictions eligible for accuracy grading (final lock, or legacy without phase). */
-export function isGradablePrediction(prediction: LockedPrediction): boolean {
+/**
+ * Predictions eligible for accuracy grading.
+ * Final locks always count; early estimates count only once the match is finished
+ * (e.g. final pass missed before kick-off).
+ */
+export function isGradablePrediction(
+  prediction: LockedPrediction,
+  fixture?: Fixture
+): boolean {
   const phase = prediction.phase ?? "final";
-  return phase === "final";
+  if (phase === "final") return true;
+  return fixture?.status === "FINISHED";
 }
 
 export function resultFromFixture(fixture: Fixture): MatchResult | null {
@@ -31,12 +39,15 @@ export function resultFromFixture(fixture: Fixture): MatchResult | null {
 
 export function buildGradings(
   predictions: Record<string, LockedPrediction>,
-  results: Record<string, MatchResult>
+  results: Record<string, MatchResult>,
+  fixtures: Fixture[] = []
 ): MatchGrading[] {
   const gradings: MatchGrading[] = [];
+  const fixtureById = new Map(fixtures.map((f) => [f.id, f]));
 
   for (const [id, prediction] of Object.entries(predictions)) {
-    if (!isGradablePrediction(prediction)) continue;
+    const fixture = fixtureById.get(prediction.matchId);
+    if (!isGradablePrediction(prediction, fixture)) continue;
     const result = results[id];
     if (result) gradings.push(gradeMatch(prediction, result));
   }
@@ -66,7 +77,7 @@ export async function refreshAccuracyStats(
     if (!fromFixture) continue;
 
     const prediction = predictions[key];
-    if (prediction && isGradablePrediction(prediction)) {
+    if (prediction && isGradablePrediction(prediction, fixture)) {
       await setResult(fromFixture);
       settled++;
     }
@@ -74,7 +85,7 @@ export async function refreshAccuracyStats(
     results[key] = fromFixture;
   }
 
-  const stats = computeStats(buildGradings(predictions, results));
+  const stats = computeStats(buildGradings(predictions, results, fixtures));
   await setStats(stats);
 
   return { stats, settled, results };

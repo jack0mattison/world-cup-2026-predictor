@@ -102,6 +102,12 @@ export interface MatchGrading {
   outcomeCorrect: boolean;
   baselineOutcomeCorrect: boolean;
   exactScore: boolean;
+  /** Total goals off — |Δhome| + |Δaway| (e.g. 2–0 vs 2–1 = 1) */
+  scorelineDistance: number;
+  /** Same winning margin (e.g. 2–0 and 2–1 both +2 for the home side) */
+  correctGoalDiff: boolean;
+  /** Predicted score within 1 total goal of the final */
+  closeScore: boolean;
   brierScore: number;
   baselineBrierScore: number;
   predictedOutcome: "HOME" | "DRAW" | "AWAY";
@@ -114,6 +120,8 @@ export interface AccuracyStats {
   totalMatches: number;
   outcomeAccuracy: number;
   exactScoreRate: number;
+  closeScoreRate: number;
+  correctGoalDiffRate: number;
   avgBrierScore: number;
   baselineOutcomeAccuracy: number;
   baselineAvgBrierScore: number;

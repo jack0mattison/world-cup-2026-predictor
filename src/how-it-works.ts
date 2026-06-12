@@ -58,6 +58,7 @@ export function renderHowItWorks(): string {
         <ul class="how-list">
           <li><strong>Outcome</strong> — did we pick the right winner (or draw)?</li>
           <li><strong>Exact score</strong> — did we nail the scoreline?</li>
+          <li><strong>Within 1 goal</strong> — predicted score off by at most one goal in total (e.g. 2–0 vs 2–1).</li>
           <li><strong>Brier score</strong> — how well-calibrated were the probabilities? (A 55% favourite losing scores better than a 90% upset.)</li>
         </ul>
       </section>

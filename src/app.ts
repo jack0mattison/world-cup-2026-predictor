@@ -177,7 +177,14 @@ export class App {
   private getResults(): Array<{
     fixture: Fixture;
     prediction?: LockedPrediction;
-    grading?: { outcomeCorrect: boolean; exactScore: boolean; brierScore: number };
+    grading?: {
+      outcomeCorrect: boolean;
+      exactScore: boolean;
+      closeScore: boolean;
+      correctGoalDiff: boolean;
+      scorelineDistance: number;
+      brierScore: number;
+    };
   }> {
     if (!this.data) return [];
     const gradingMap = new Map(
@@ -194,6 +201,9 @@ export class App {
             ? {
                 outcomeCorrect: g.outcomeCorrect,
                 exactScore: g.exactScore,
+                closeScore: g.closeScore,
+                correctGoalDiff: g.correctGoalDiff,
+                scorelineDistance: g.scorelineDistance,
                 brierScore: g.brierScore,
               }
             : undefined,
@@ -222,7 +232,14 @@ export class App {
     fixture: Fixture,
     prediction?: LockedPrediction,
     mode: "upcoming" | "result" = "upcoming",
-    grading?: { outcomeCorrect: boolean; exactScore: boolean; brierScore: number }
+    grading?: {
+      outcomeCorrect: boolean;
+      exactScore: boolean;
+      closeScore: boolean;
+      correctGoalDiff: boolean;
+      scorelineDistance: number;
+      brierScore: number;
+    }
   ): string {
     const { local } = formatKickoff(fixture.utcDate);
     const locked = isLocked(fixture, prediction);
@@ -267,9 +284,17 @@ export class App {
           ? `<span class="badge badge--locked">Locked ${formatUkDateTime(prediction!.lockedAt)}</span>`
           : `<span class="badge badge--open">Locks at kick-off · ${timeUntilKickoff(fixture.utcDate)}</span>`;
 
+    const scoreDetail =
+      mode === "result" && grading && !grading.exactScore
+        ? grading.closeScore
+          ? grading.correctGoalDiff
+            ? " · Right margin"
+            : ` · ${grading.scorelineDistance} goal${grading.scorelineDistance === 1 ? "" : "s"} off`
+          : ""
+        : "";
     const resultBadge =
       mode === "result" && grading
-        ? `<span class="badge ${grading.outcomeCorrect ? "badge--hit" : "badge--miss"}">${grading.outcomeCorrect ? "✓ Outcome" : "✗ Outcome"}${grading.exactScore ? " · Exact score!" : ""}</span>`
+        ? `<span class="badge ${grading.outcomeCorrect ? "badge--hit" : "badge--miss"}">${grading.outcomeCorrect ? "✓ Outcome" : "✗ Outcome"}${grading.exactScore ? " · Exact score!" : scoreDetail}</span>`
         : "";
 
     const actualScore =
@@ -360,19 +385,74 @@ export class App {
     );
   }
 
+  private formatGradingDetail(grading: {
+    outcomeCorrect: boolean;
+    exactScore: boolean;
+    closeScore: boolean;
+    correctGoalDiff: boolean;
+    scorelineDistance: number;
+  }): string {
+    if (grading.exactScore) return "Exact score";
+    if (!grading.outcomeCorrect) return "Wrong outcome";
+    if (grading.correctGoalDiff) return "Right winner & margin";
+    if (grading.closeScore) {
+      return grading.scorelineDistance === 1 ? "1 goal off" : `${grading.scorelineDistance} goals off`;
+    }
+    return "Right winner";
+  }
+
+  private renderAccuracyMatchRow(
+    fixture: Fixture,
+    prediction: LockedPrediction,
+    grading: NonNullable<ReturnType<App["getResults"]>[number]["grading"]>
+  ): string {
+    const pred = `${prediction.final.scoreline.home}–${prediction.final.scoreline.away}`;
+    const actual = `${fixture.score!.home}–${fixture.score!.away}`;
+    const detail = this.formatGradingDetail(grading);
+    const tone = grading.exactScore
+      ? "accuracy-row--exact"
+      : grading.outcomeCorrect
+        ? grading.closeScore
+          ? "accuracy-row--close"
+          : "accuracy-row--hit"
+        : "accuracy-row--miss";
+
+    return `
+      <li class="accuracy-row ${tone}">
+        <div class="accuracy-row__teams">
+          <span class="accuracy-row__match">${escapeHtml(fixture.homeTeam.tla)} vs ${escapeHtml(fixture.awayTeam.tla)}</span>
+          <span class="accuracy-row__score">${pred} → ${actual}</span>
+        </div>
+        <span class="accuracy-row__detail">${detail}</span>
+      </li>
+    `;
+  }
+
   private renderAccuracy(): string {
     const stats = this.data?.stats;
     if (!stats || stats.totalMatches === 0) {
       const finishedCount = this.data?.fixtures.filter((f) => f.status === "FINISHED").length ?? 0;
       const message =
         finishedCount > 0
-          ? "No final predictions to grade yet — early estimates aren't counted until the final lock (2–4h before kick-off)."
+          ? "No predictions to grade yet — waiting on a locked estimate for finished matches."
           : "Accuracy stats appear after the first settled match.";
       return `<div class="empty"><p>${message}</p></div>`;
     }
 
     const brierDelta = stats.avgBrierScore - stats.baselineAvgBrierScore;
     const brierBetter = brierDelta < 0;
+    const gradingMap = new Map(stats.gradings.map((g) => [g.matchId, g]));
+    const matchRows = this.data!.fixtures
+      .filter((f) => f.status === "FINISHED" && gradingMap.has(f.id))
+      .sort((a, b) => b.utcDate.localeCompare(a.utcDate))
+      .map((f) => {
+        const prediction = this.data!.predictions[String(f.id)];
+        const grading = gradingMap.get(f.id)!;
+        if (!prediction || !f.score) return "";
+        return this.renderAccuracyMatchRow(f, prediction, grading);
+      })
+      .filter(Boolean)
+      .join("");
 
     return `
       <div class="accuracy-dashboard">
@@ -387,6 +467,10 @@ export class App {
             <div class="stat-card__label">Exact score</div>
           </div>
           <div class="stat-card">
+            <div class="stat-card__value">${stats.closeScoreRate}%</div>
+            <div class="stat-card__label">Within 1 goal</div>
+          </div>
+          <div class="stat-card">
             <div class="stat-card__value">${stats.avgBrierScore}</div>
             <div class="stat-card__label">Avg Brier</div>
           </div>
@@ -394,15 +478,19 @@ export class App {
             <div class="stat-card__value">${stats.baselineOutcomeAccuracy}%</div>
             <div class="stat-card__label">Elo-only accuracy</div>
           </div>
-          <div class="stat-card">
-            <div class="stat-card__value">${stats.baselineAvgBrierScore}</div>
-            <div class="stat-card__label">Elo-only Brier</div>
-          </div>
         </div>
         <div class="comparison ${brierBetter ? "comparison--better" : "comparison--worse"}">
           Model Brier vs Elo baseline: <strong>${brierBetter ? "beating" : "trailing"}</strong> by ${Math.abs(brierDelta).toFixed(3)}
         </div>
-        <p class="accuracy-note">Predictions lock before kick-off. Brier score measures calibration — a 55% favourite losing isn't the same as a 90% upset.</p>
+        ${
+          matchRows
+            ? `<section class="accuracy-breakdown">
+                <h2 class="accuracy-breakdown__title">Match by match</h2>
+                <ul class="accuracy-breakdown__list">${matchRows}</ul>
+              </section>`
+            : ""
+        }
+        <p class="accuracy-note">Predictions lock before kick-off. &ldquo;Within 1 goal&rdquo; means the predicted scoreline is off by at most one goal in total (e.g. 2–0 vs 2–1). Brier score measures probability calibration.</p>
         <p class="accuracy-updated">Updated ${formatUkDateTime(stats.updatedAt)}</p>
       </div>
     `;

@@ -32,6 +32,8 @@ export function getDevSampleData(): AppData {
   const total = gradings.length;
   const outcomeCorrect = gradings.filter((g) => g.outcomeCorrect).length;
   const exactScores = gradings.filter((g) => g.exactScore).length;
+  const closeScores = gradings.filter((g) => g.closeScore).length;
+  const correctGoalDiffs = gradings.filter((g) => g.correctGoalDiff).length;
   const avgBrier = total ? gradings.reduce((s, g) => s + g.brierScore, 0) / total : 0;
   const baselineCorrect = gradings.filter((g) => g.baselineOutcomeCorrect).length;
   const avgBaselineBrier = total
@@ -48,6 +50,8 @@ export function getDevSampleData(): AppData {
           totalMatches: total,
           outcomeAccuracy: Math.round((outcomeCorrect / total) * 1000) / 10,
           exactScoreRate: Math.round((exactScores / total) * 1000) / 10,
+          closeScoreRate: Math.round((closeScores / total) * 1000) / 10,
+          correctGoalDiffRate: Math.round((correctGoalDiffs / total) * 1000) / 10,
           avgBrierScore: Math.round(avgBrier * 1000) / 1000,
           baselineOutcomeAccuracy: Math.round((baselineCorrect / total) * 1000) / 10,
           baselineAvgBrierScore: Math.round(avgBaselineBrier * 1000) / 1000,

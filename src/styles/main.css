@@ -550,6 +550,70 @@ body {
   opacity: 0.8;
 }
 
+.accuracy-breakdown {
+  margin-top: 1.25rem;
+}
+
+.accuracy-breakdown__title {
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 0.75rem;
+}
+
+.accuracy-breakdown__list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.accuracy-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+}
+
+.accuracy-row__teams {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.accuracy-row__match {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.accuracy-row__score {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  letter-spacing: 0.04em;
+}
+
+.accuracy-row__detail {
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.accuracy-row--exact .accuracy-row__detail { color: var(--hit); }
+.accuracy-row--close .accuracy-row__detail { color: var(--accent); }
+.accuracy-row--hit .accuracy-row__detail { color: var(--hit); }
+.accuracy-row--miss .accuracy-row__detail { color: var(--miss); }
+
 /* Empty & loading */
 .empty,
 .loading {
