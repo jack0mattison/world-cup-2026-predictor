@@ -1,13 +1,11 @@
 import type { Config, Handler } from "@netlify/functions";
-import { createFixturesProvider, refreshFixtures } from "../../shared/fixtures/index.js";
+import { ensureFixtures } from "../../shared/fixtures/sync.js";
 import { connectBlobs } from "../../shared/storage/connect-blobs.js";
 import { computeStats, gradeMatch } from "../../shared/prediction/index.js";
 import type { MatchResult } from "../../shared/types.js";
 import {
   getAllPredictions,
-  getFixtures,
   getResult,
-  setFixtures,
   setResult,
   setStats,
 } from "../../shared/storage/blobs.js";
@@ -19,10 +17,7 @@ export const config: Config = {
 export const handler: Handler = async (event) => {
   connectBlobs(event);
   try {
-    const provider = createFixturesProvider();
-    const existing = await getFixtures();
-    const fixtures = await refreshFixtures(provider, existing);
-    await setFixtures(fixtures);
+    const fixtures = await ensureFixtures(true);
 
     const predictions = await getAllPredictions();
     const finished = fixtures.filter((f) => f.status === "FINISHED" && f.score);

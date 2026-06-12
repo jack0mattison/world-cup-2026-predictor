@@ -7,6 +7,7 @@ import type {
   LockedPrediction,
   MatchResult,
 } from "../types.js";
+import type { PredictRunResult } from "../prediction/runner.js";
 import { hasFootballDataApiKey } from "../config.js";
 import { isSampleFixtures } from "../fixtures/sample.js";
 
@@ -154,6 +155,22 @@ export async function getStats(): Promise<AccuracyStats | null> {
 
 export async function setStats(stats: AccuracyStats): Promise<void> {
   await set("stats", JSON.stringify(stats));
+}
+
+interface PredictMetaBlob {
+  lastRunAt?: string;
+  lastResult?: PredictRunResult;
+}
+
+export async function getPredictRunMeta(): Promise<PredictMetaBlob> {
+  const raw = await get("predict/meta");
+  if (!raw) return {};
+  return JSON.parse(raw) as PredictMetaBlob;
+}
+
+export async function setPredictRunMeta(partial: PredictMetaBlob): Promise<void> {
+  const current = await getPredictRunMeta();
+  await set("predict/meta", JSON.stringify({ ...current, ...partial }));
 }
 
 export async function loadAppData(): Promise<AppData> {

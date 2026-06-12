@@ -32,9 +32,11 @@ Set in Netlify dashboard (or `.env` for `netlify dev`):
 
 | Function | Schedule | Purpose |
 |---|---|---|
-| `predict-background` | Hourly | Early Elo estimate ~12h out; final prediction 2–4h before kick-off (Brave + OpenRouter) |
+| `predict-background` | Every 30 min | Early Elo (4–12h before KO); final lock (≤4h before KO, with post-KO grace if status lags) |
 | `predict` | Manual | Test the prediction pipeline locally |
-| `settle` | Every 2h | Fetch results, grade predictions, update stats |
+| `settle` | Every 2h | Refresh fixtures (incl. ESPN), settle results, grade **final** predictions only |
+
+Run `npm run verify:schedule` to assert prediction window logic.
 
 ## Deploy
 
@@ -49,7 +51,7 @@ Link site to Netlify Blobs and set environment variables before the tournament m
 ```
 Static frontend → /.netlify/functions/api-data → Netlify Blobs
                         ↑
-              predict (hourly) / settle (2-hourly)
+              predict-background (30 min) / settle (2-hourly)
                         ↑
               football-data.org + Elo engine
 ```

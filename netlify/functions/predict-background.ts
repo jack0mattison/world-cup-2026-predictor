@@ -3,7 +3,8 @@ import { runPredictions } from "../../shared/prediction/runner.js";
 import { connectBlobs } from "../../shared/storage/connect-blobs.js";
 
 export const config: Config = {
-  schedule: "@hourly",
+  /** Every 30 min — final window is 0–4h before KO; hourly was too easy to miss */
+  schedule: "*/30 * * * *",
 };
 
 /** Background function (15 min) — Brave Search + OpenRouter LLM batches */

@@ -1,29 +1,37 @@
-import { createFixturesProvider, refreshFixtures } from "../fixtures/index.js";
-import type { Fixture, LockedPrediction, PredictionPhase } from "../types.js";
+import { ensureFixtures } from "../fixtures/sync.js";
+import type { LockedPrediction, PredictionPhase } from "../types.js";
 import {
   getFixtures,
   getPrediction,
-  setFixtures,
   setPrediction,
+  setPredictRunMeta,
 } from "../storage/blobs.js";
 import { isLlmLayerEnabled } from "../config.js";
 import { generateBaselinePrediction } from "./baseline.js";
 import { generatePrediction } from "./generate.js";
+import {
+  findMissedFinalizations,
+  fixturesNeedingEarly,
+  fixturesNeedingFinal,
+} from "./schedule.js";
 
-/** Final prediction window — full LLM + Brave context */
-export const FINAL_MIN_HOURS = 2;
-export const FINAL_MAX_HOURS = 4;
-
-/** Early estimate window — cheap Elo baseline only */
-export const EARLY_MIN_HOURS = 4;
-export const EARLY_MAX_HOURS = 12;
+export {
+  EARLY_MAX_HOURS,
+  EARLY_MIN_HOURS,
+  FINAL_AFTER_KICKOFF_HOURS,
+  FINAL_MAX_HOURS,
+} from "./schedule.js";
 
 export interface PredictRunResult {
   generatedEarly: number;
   generatedFinal: number;
   skipped: number;
+  dueEarly: number[];
+  dueFinal: number[];
+  missedFinalizations: number[];
   llmEnabled: boolean;
   errors: string[];
+  ranAt: string;
 }
 
 function predictionPhase(pred: LockedPrediction | null): PredictionPhase | null {
@@ -31,43 +39,34 @@ function predictionPhase(pred: LockedPrediction | null): PredictionPhase | null 
   return pred.phase ?? "final";
 }
 
-function fixturesInEarlyWindow(fixtures: Fixture[], now: number): Fixture[] {
-  const minMs = EARLY_MIN_HOURS * 60 * 60 * 1000;
-  const maxMs = EARLY_MAX_HOURS * 60 * 60 * 1000;
-
-  return fixtures.filter((fixture) => {
-    if (fixture.status !== "SCHEDULED") return false;
-    const timeUntil = new Date(fixture.utcDate).getTime() - now;
-    return timeUntil > minMs && timeUntil <= maxMs;
-  });
-}
-
-function fixturesInFinalWindow(fixtures: Fixture[], now: number): Fixture[] {
-  const minMs = FINAL_MIN_HOURS * 60 * 60 * 1000;
-  const maxMs = FINAL_MAX_HOURS * 60 * 60 * 1000;
-  const afterKickoffCatchUpMs = 4 * 60 * 60 * 1000;
-
-  return fixtures.filter((fixture) => {
-    if (fixture.status === "FINISHED" || fixture.status === "CANCELLED") return false;
-    if (fixture.status !== "SCHEDULED" && fixture.status !== "LIVE") return false;
-    const timeUntil = new Date(fixture.utcDate).getTime() - now;
-    const inWindow = timeUntil >= minMs && timeUntil <= maxMs;
-    const catchUp = timeUntil > 0 && timeUntil < minMs;
-    const afterKickoffCatchUp =
-      timeUntil <= 0 && timeUntil > -afterKickoffCatchUpMs;
-    return inWindow || catchUp || afterKickoffCatchUp;
-  });
-}
-
 export async function runPredictions(): Promise<PredictRunResult> {
-  const provider = createFixturesProvider();
+  const ranAt = new Date().toISOString();
+  const phaseById = new Map<number, PredictionPhase | null>();
+
+  const getPhase = (id: number): PredictionPhase | null => {
+    if (!phaseById.has(id)) return null;
+    return phaseById.get(id) ?? null;
+  };
+
   const existing = await getFixtures();
-  const fixtures = await refreshFixtures(provider, existing);
-  await setFixtures(fixtures);
+  for (const f of existing) {
+    const pred = await getPrediction(f.id);
+    phaseById.set(f.id, predictionPhase(pred));
+  }
+
+  const fixtures = await ensureFixtures(true);
+  for (const f of fixtures) {
+    if (!phaseById.has(f.id)) {
+      const pred = await getPrediction(f.id);
+      phaseById.set(f.id, predictionPhase(pred));
+    }
+  }
 
   const now = Date.now();
-  const earlyDue = fixturesInEarlyWindow(fixtures, now);
-  const finalDue = fixturesInFinalWindow(fixtures, now);
+  const earlyDue = fixturesNeedingEarly(fixtures, now, getPhase);
+  const finalDue = fixturesNeedingFinal(fixtures, now, getPhase);
+  const missed = findMissedFinalizations(fixtures, now, getPhase);
+
   let generatedEarly = 0;
   let generatedFinal = 0;
   let skipped = 0;
@@ -83,6 +82,7 @@ export async function runPredictions(): Promise<PredictRunResult> {
     try {
       const prediction = generateBaselinePrediction(fixture, "early");
       await setPrediction(prediction);
+      phaseById.set(fixture.id, "early");
       generatedEarly++;
       console.log(
         `Early estimate for ${fixture.homeTeam.tla} vs ${fixture.awayTeam.tla}`
@@ -104,6 +104,7 @@ export async function runPredictions(): Promise<PredictRunResult> {
     try {
       const prediction = await generatePrediction(fixture);
       await setPrediction({ ...prediction, phase: "final" });
+      phaseById.set(fixture.id, "final");
       generatedFinal++;
       console.log(
         `Final ${prediction.source} prediction for ${fixture.homeTeam.tla} vs ${fixture.awayTeam.tla}`
@@ -115,11 +116,29 @@ export async function runPredictions(): Promise<PredictRunResult> {
     }
   }
 
-  return {
+  const result: PredictRunResult = {
     generatedEarly,
     generatedFinal,
     skipped,
+    dueEarly: earlyDue.map((f) => f.id),
+    dueFinal: finalDue.map((f) => f.id),
+    missedFinalizations: missed.map((f) => f.id),
     llmEnabled: isLlmLayerEnabled(),
     errors,
+    ranAt,
   };
+
+  if (missed.length > 0) {
+    console.warn(
+      "Missed final predictions (finished without final lock):",
+      missed.map((f) => `${f.id} ${f.homeTeam.tla} vs ${f.awayTeam.tla}`)
+    );
+  }
+
+  await setPredictRunMeta({
+    lastRunAt: ranAt,
+    lastResult: result,
+  });
+
+  return result;
 }
